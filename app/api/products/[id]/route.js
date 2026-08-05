@@ -1,38 +1,87 @@
 function getWcAuth() {
-  return Buffer.from(`${process.env.WC_CONSUMER_KEY}:${process.env.WC_CONSUMER_SECRET}`).toString('base64');
+  return Buffer.from(
+    `${process.env.WC_CONSUMER_KEY}:${process.env.WC_CONSUMER_SECRET}`
+  ).toString("base64");
 }
 
 export async function PUT(request, { params }) {
   try {
+    const { id } = await params;
+
     const body = await request.json();
-    const res = await fetch(`${process.env.WP_SITE_URL}/wp-json/wc/v3/products/${params.id}`, {
-      method: 'PUT',
+
+    const res = await fetch(
+      `${process.env.WP_SITE_URL}/wp-json/wc/v3/products/${id}`,
+      {
+        method: "PUT",
+        headers: {
+          Authorization: `Basic ${getWcAuth()}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: body.title,
+          description: body.description,
+          regular_price: body.price,
+        }),
+      }
+    );
+
+    const text = await res.text();
+
+    console.log("PUT STATUS:", res.status);
+    console.log("PUT RESPONSE:", text);
+
+    return new Response(text, {
+      status: res.status,
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Basic ${getWcAuth()}`
+        "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        name: body.title,
-        description: body.description,
-        regular_price: body.price,
-      })
     });
-
-    if (!res.ok) {
-      const errText = await res.text();
-      return Response.json({ error: errText }, { status: res.status });
-    }
-
-    return Response.json(await res.json());
   } catch (err) {
-    return Response.json({ error: err.message }, { status: 500 });
+    return Response.json(
+      {
+        error: err.message,
+      },
+      {
+        status: 500,
+      }
+    );
   }
 }
 
 export async function DELETE(request, { params }) {
-  const res = await fetch(`${process.env.WP_SITE_URL}/wp-json/wc/v3/products/${params.id}?force=true`, {
-    method: 'DELETE',
-    headers: { 'Authorization': `Basic ${getWcAuth()}` }
-  });
-  return Response.json(await res.json());
+  try {
+    const { id } = await params;
+
+    const res = await fetch(
+      `${process.env.WP_SITE_URL}/wp-json/wc/v3/products/${id}?force=true`,
+      {
+        method: "DELETE",
+        headers: {
+          Authorization: `Basic ${getWcAuth()}`,
+        },
+      }
+    );
+
+    const text = await res.text();
+
+    console.log("DELETE STATUS:", res.status);
+    console.log("DELETE RESPONSE:", text);
+
+    return new Response(text, {
+      status: res.status,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+  } catch (err) {
+    return Response.json(
+      {
+        error: err.message,
+      },
+      {
+        status: 500,
+      }
+    );
+  }
 }
