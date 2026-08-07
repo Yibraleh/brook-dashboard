@@ -13,7 +13,8 @@ import {
 
 export default function ProductsPage() {
   const [products, setProducts] = useState([]);
-  const [form, setForm] = useState({ title: '', description: '', price: '' });
+  const [categories, setCategories] = useState([]);
+  const [form, setForm] = useState({ title: '', description: '', price: '', categories: [] });
   const [file, setFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [status, setStatus] = useState('');
@@ -35,7 +36,21 @@ export default function ProductsPage() {
     }
   }
 
-  useEffect(() => { loadProducts(); }, []);
+  async function loadCategories() {
+    try {
+      const res = await fetch('/api/products/categories');
+      const data = await res.json();
+      setCategories(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Failed to load categories:', err);
+      setCategories([]);
+    }
+  }
+
+  useEffect(() => {
+    loadProducts();
+    loadCategories();
+  }, []);
 
   function handleFileSelect(selectedFile) {
     if (!selectedFile || !selectedFile.type.startsWith('image/')) return;
@@ -49,6 +64,30 @@ export default function ProductsPage() {
     handleFileSelect(e.dataTransfer.files[0]);
   }
 
+  function toggleCreateCategory(catId) {
+    setForm((prev) => {
+      const exists = prev.categories.includes(catId);
+      return {
+        ...prev,
+        categories: exists
+          ? prev.categories.filter((id) => id !== catId)
+          : [...prev.categories, catId],
+      };
+    });
+  }
+
+  function toggleEditCategory(catId) {
+    setEditForm((prev) => {
+      const exists = prev.categories.includes(catId);
+      return {
+        ...prev,
+        categories: exists
+          ? prev.categories.filter((id) => id !== catId)
+          : [...prev.categories, catId],
+      };
+    });
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     setSaving(true);
@@ -57,7 +96,6 @@ export default function ProductsPage() {
     try {
       let imageId = null;
 
-      // Upload image first if one was selected
       if (file) {
         const formData = new FormData();
         formData.append('file', file);
@@ -75,13 +113,13 @@ export default function ProductsPage() {
 
       if (data.id) {
         setStatus('✅ Product added!');
-        setForm({ title: '', description: '', price: '' });
+        setForm({ title: '', description: '', price: '', categories: [] });
         setFile(null);
         setPreviewUrl(null);
         if (fileInputRef.current) fileInputRef.current.value = '';
         loadProducts();
       } else {
-        setStatus('❌ ' + (data.error || 'Error adding product'));
+        setStatus('❌ ' + (data.error || data.message || 'Error adding product'));
       }
     } catch (err) {
       setStatus('❌ Request failed');
@@ -97,6 +135,7 @@ export default function ProductsPage() {
       title: p.name,
       description: p.description?.replace(/<[^>]+>/g, '') || '',
       price: p.regular_price || p.price || '',
+      categories: p.categories?.map((c) => c.id) || [],
     });
   }
 
@@ -118,7 +157,7 @@ export default function ProductsPage() {
       closeModal();
       loadProducts();
     } else {
-      alert('Failed to update: ' + (data.error || 'Unknown error'));
+      alert('Failed to update: ' + (data.error || data.message || 'Unknown error'));
     }
   }
 
@@ -135,6 +174,32 @@ export default function ProductsPage() {
 
   const inputStyles =
     "w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-slate-900 placeholder:text-slate-400 outline-none transition-all duration-300 focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-100";
+
+  function CategoryCheckboxes({ selected, onToggle }) {
+    return (
+      <div className="flex flex-wrap gap-2">
+        {categories.map((cat) => {
+          const isChecked = selected.includes(cat.id);
+          return (
+            <button
+              key={cat.id}
+              type="button"
+              onClick={() => onToggle(cat.id)}
+              className={`px-4 py-2 rounded-full text-sm font-medium border transition-all
+                ${isChecked
+                  ? 'bg-indigo-600 border-indigo-600 text-white'
+                  : 'bg-white border-slate-200 text-slate-600 hover:border-indigo-300'}`}
+            >
+              {cat.name}
+            </button>
+          );
+        })}
+        {categories.length === 0 && (
+          <p className="text-sm text-slate-400">No categories found.</p>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-10">
@@ -209,6 +274,13 @@ export default function ProductsPage() {
           </div>
 
           <div>
+            <label className="block text-sm font-semibold text-slate-600 mb-2">
+              Category <span className="text-slate-400 font-normal">(select one or more — leave blank for Uncategorized)</span>
+            </label>
+            <CategoryCheckboxes selected={form.categories} onToggle={toggleCreateCategory} />
+          </div>
+
+          <div>
             <label className="block text-sm font-semibold text-slate-600 mb-2">Price</label>
             <div className="relative">
               <DollarSign size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -279,6 +351,15 @@ export default function ProductsPage() {
                   {p.name}
                 </h3>
                 <p className="text-sm text-slate-400 mb-2">#{p.id}</p>
+                {p.categories?.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mb-2">
+                    {p.categories.map((c) => (
+                      <span key={c.id} className="text-xs bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full">
+                        {c.name}
+                      </span>
+                    ))}
+                  </div>
+                )}
                 <p className="text-lg font-semibold text-indigo-600">
                   ${p.regular_price || p.price || '—'}
                 </p>
@@ -325,6 +406,13 @@ export default function ProductsPage() {
                   value={editForm.description}
                   onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-600 mb-2">
+                  Category <span className="text-slate-400 font-normal">(select one or more)</span>
+                </label>
+                <CategoryCheckboxes selected={editForm.categories} onToggle={toggleEditCategory} />
               </div>
 
               <div>

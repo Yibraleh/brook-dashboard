@@ -7,8 +7,11 @@ function getWcAuth() {
 export async function PUT(request, { params }) {
   try {
     const { id } = await params;
-
     const body = await request.json();
+
+    const categories = Array.isArray(body.categories) && body.categories.length > 0
+      ? body.categories.map((catId) => ({ id: Number(catId) }))
+      : [];
 
     const res = await fetch(
       `${process.env.WP_SITE_URL}/wp-json/wc/v3/products/${id}`,
@@ -22,66 +25,37 @@ export async function PUT(request, { params }) {
           name: body.title,
           description: body.description,
           regular_price: body.price,
+          categories,
         }),
       }
     );
 
     const text = await res.text();
-
-    console.log("PUT STATUS:", res.status);
-    console.log("PUT RESPONSE:", text);
-
     return new Response(text, {
       status: res.status,
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
     });
   } catch (err) {
-    return Response.json(
-      {
-        error: err.message,
-      },
-      {
-        status: 500,
-      }
-    );
+    return Response.json({ error: err.message }, { status: 500 });
   }
 }
 
 export async function DELETE(request, { params }) {
   try {
     const { id } = await params;
-
     const res = await fetch(
       `${process.env.WP_SITE_URL}/wp-json/wc/v3/products/${id}?force=true`,
       {
         method: "DELETE",
-        headers: {
-          Authorization: `Basic ${getWcAuth()}`,
-        },
+        headers: { Authorization: `Basic ${getWcAuth()}` },
       }
     );
-
     const text = await res.text();
-
-    console.log("DELETE STATUS:", res.status);
-    console.log("DELETE RESPONSE:", text);
-
     return new Response(text, {
       status: res.status,
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
     });
   } catch (err) {
-    return Response.json(
-      {
-        error: err.message,
-      },
-      {
-        status: 500,
-      }
-    );
+    return Response.json({ error: err.message }, { status: 500 });
   }
 }

@@ -10,35 +10,20 @@ export async function GET(request) {
     const search = searchParams.get("search") || "";
 
     let url = `${process.env.WP_SITE_URL}/wp-json/wc/v3/products?per_page=100`;
-
-    if (search) {
-      url += `&search=${encodeURIComponent(search)}`;
-    }
+    if (search) url += `&search=${encodeURIComponent(search)}`;
 
     const res = await fetch(url, {
-      headers: {
-        Authorization: `Basic ${getWcAuth()}`,
-      },
+      headers: { Authorization: `Basic ${getWcAuth()}` },
       cache: "no-store",
     });
 
     const text = await res.text();
-
     return new Response(text, {
       status: res.status,
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
     });
   } catch (err) {
-    return Response.json(
-      {
-        error: err.message,
-      },
-      {
-        status: 500,
-      }
-    );
+    return Response.json({ error: err.message }, { status: 500 });
   }
 }
 
@@ -47,6 +32,11 @@ export async function POST(request) {
     const body = await request.json();
 
     const images = body.imageId ? [{ id: body.imageId }] : [];
+
+    // categories: array of category IDs (numbers or numeric strings)
+    const categories = Array.isArray(body.categories) && body.categories.length > 0
+      ? body.categories.map((id) => ({ id: Number(id) }))
+      : []; // empty = WooCommerce will file it under "Uncategorized"
 
     const res = await fetch(
       `${process.env.WP_SITE_URL}/wp-json/wc/v3/products`,
@@ -61,26 +51,17 @@ export async function POST(request) {
           description: body.description,
           regular_price: body.price,
           images,
+          categories,
         }),
       }
     );
 
     const text = await res.text();
-
     return new Response(text, {
       status: res.status,
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
     });
   } catch (err) {
-    return Response.json(
-      {
-        error: err.message,
-      },
-      {
-        status: 500,
-      }
-    );
+    return Response.json({ error: err.message }, { status: 500 });
   }
 }
