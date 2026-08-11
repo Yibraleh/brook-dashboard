@@ -42,21 +42,18 @@ export default function DashboardHome() {
       title: 'Products',
       value: stats.products,
       href: '/dashboard/products',
-      color: 'from-blue-500 to-cyan-500',
       icon: <Package size={30} />,
     },
     {
       title: 'Blog Posts',
       value: stats.posts,
       href: '/dashboard/posts',
-      color: 'from-purple-500 to-pink-500',
       icon: <FileText size={30} />,
     },
     {
       title: 'Media Files',
       value: stats.images,
       href: '/dashboard/images',
-      color: 'from-orange-500 to-red-500',
       icon: <ImageIcon size={30} />,
     },
   ];
@@ -67,21 +64,18 @@ export default function DashboardHome() {
       desc: 'Upload and organize gallery images.',
       href: '/dashboard/images',
       icon: <ImageIcon size={34} />,
-      color: 'bg-blue-50 text-blue-600',
     },
     {
       title: 'Manage Products',
       desc: 'Create and edit WooCommerce products.',
       href: '/dashboard/products',
       icon: <Package size={34} />,
-      color: 'bg-green-50 text-green-600',
     },
     {
       title: 'Manage Posts',
       desc: 'Write and publish blog articles.',
       href: '/dashboard/posts',
       icon: <FileText size={34} />,
-      color: 'bg-purple-50 text-purple-600',
     },
   ];
 
@@ -89,17 +83,17 @@ export default function DashboardHome() {
     <div className="space-y-10">
 
       {/* Hero */}
-      <div className="rounded-3xl bg-gradient-to-r from-slate-900 via-blue-900 to-slate-800 p-10 text-white shadow-2xl">
-        <p className="text-blue-200 font-medium">
-          Welcome back 👋
+      <div className="rounded-3xl bg-black p-10 text-white shadow-2xl">
+        <p className="text-gray-400 font-medium">
+          Welcome back
         </p>
 
         <h1 className="mt-2 text-4xl font-bold">
           Brook Dashboard
         </h1>
 
-        <p className="mt-3 max-w-2xl text-slate-300">
-          Manage products, media files, and blog content from one beautiful
+        <p className="mt-3 max-w-2xl text-gray-300">
+          Manage products, media files, and blog content from one clean
           dashboard.
         </p>
       </div>
@@ -110,9 +104,9 @@ export default function DashboardHome() {
           <Link
             key={card.title}
             href={card.href}
-            className="block overflow-hidden rounded-2xl border bg-white shadow-sm transition-all duration-300 hover:-translate-y-2 hover:shadow-xl"
+            className="block overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-2 hover:shadow-xl"
           >
-            <div className={`h-2 bg-gradient-to-r ${card.color}`} />
+            <div className="h-2 bg-black" />
 
             <div className="p-6">
               <div className="flex items-center justify-between">
@@ -130,7 +124,7 @@ export default function DashboardHome() {
                   </h2>
                 </div>
 
-                <div className={`rounded-xl p-4 bg-gradient-to-r ${card.color} text-white shadow-lg`}>
+                <div className="rounded-xl p-4 bg-black text-white shadow-lg">
                   {card.icon}
                 </div>
               </div>
@@ -156,9 +150,9 @@ export default function DashboardHome() {
             <Link
               key={action.title}
               href={action.href}
-              className="group rounded-2xl border bg-white p-8 shadow-sm transition-all duration-300 hover:-translate-y-2 hover:border-blue-200 hover:shadow-xl"
+              className="group rounded-2xl border border-gray-200 bg-white p-8 shadow-sm transition-all duration-300 hover:-translate-y-2 hover:border-black hover:shadow-xl"
             >
-              <div className={`inline-flex rounded-2xl p-4 ${action.color}`}>
+              <div className="inline-flex rounded-2xl p-4 bg-gray-100 text-gray-900 group-hover:bg-black group-hover:text-white transition-colors">
                 {action.icon}
               </div>
 
@@ -170,7 +164,7 @@ export default function DashboardHome() {
                 {action.desc}
               </p>
 
-              <div className="mt-8 flex items-center gap-2 font-medium text-blue-600">
+              <div className="mt-8 flex items-center gap-2 font-medium text-gray-900">
                 Open
                 <ArrowRight
                   size={18}

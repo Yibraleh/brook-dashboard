@@ -1,3 +1,5 @@
+import { requireAccess } from '@/lib/authGuard';
+
 function getWpAuth() {
   return Buffer.from(
     `${process.env.WP_APP_USER}:${process.env.WP_APP_PASSWORD}`
@@ -5,6 +7,9 @@ function getWpAuth() {
 }
 
 export async function GET() {
+  const guard = await requireAccess('posts', 'view');
+  if (!guard.ok) return Response.json({ error: guard.message }, { status: guard.status });
+
   try {
     const res = await fetch(
       `${process.env.WP_SITE_URL}/wp-json/wp/v2/posts?per_page=100&status=any&context=edit`,
@@ -22,32 +27,23 @@ export async function GET() {
       console.error(text);
       return new Response(text, {
         status: res.status,
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
       });
     }
 
     return new Response(text, {
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
     });
   } catch (err) {
     console.error(err);
-
-    return Response.json(
-      {
-        error: err.message,
-      },
-      {
-        status: 500,
-      }
-    );
+    return Response.json({ error: err.message }, { status: 500 });
   }
 }
 
 export async function POST(request) {
+  const guard = await requireAccess('posts', 'manage');
+  if (!guard.ok) return Response.json({ error: guard.message }, { status: guard.status });
+
   try {
     const body = await request.json();
 
@@ -63,6 +59,7 @@ export async function POST(request) {
           title: body.title,
           content: body.content,
           status: body.status || "draft",
+          ...(body.featuredMediaId ? { featured_media: body.featuredMediaId } : {}),
         }),
       }
     );
@@ -71,30 +68,17 @@ export async function POST(request) {
 
     if (!res.ok) {
       console.error(text);
-
       return new Response(text, {
         status: res.status,
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
       });
     }
 
     return new Response(text, {
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
     });
   } catch (err) {
     console.error(err);
-
-    return Response.json(
-      {
-        error: err.message,
-      },
-      {
-        status: 500,
-      }
-    );
+    return Response.json({ error: err.message }, { status: 500 });
   }
 }

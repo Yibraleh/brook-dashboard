@@ -1,3 +1,5 @@
+import { requireAccess } from '@/lib/authGuard';
+
 function getWcAuth() {
   return Buffer.from(
     `${process.env.WC_CONSUMER_KEY}:${process.env.WC_CONSUMER_SECRET}`
@@ -5,38 +7,85 @@ function getWcAuth() {
 }
 
 export async function GET(request) {
+  const guard = await requireAccess('products', 'view');
+
+  if (!guard.ok) {
+    return Response.json(
+      { error: guard.message },
+      { status: guard.status }
+    );
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search") || "";
 
     let url = `${process.env.WP_SITE_URL}/wp-json/wc/v3/products?per_page=100`;
-    if (search) url += `&search=${encodeURIComponent(search)}`;
+
+    if (search) {
+      url += `&search=${encodeURIComponent(search)}`;
+    }
 
     const res = await fetch(url, {
-      headers: { Authorization: `Basic ${getWcAuth()}` },
+      headers: {
+        Authorization: `Basic ${getWcAuth()}`,
+      },
       cache: "no-store",
     });
 
     const text = await res.text();
+
+    if (!res.ok) {
+      console.error(text);
+
+      return new Response(text, {
+        status: res.status,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+    }
+
     return new Response(text, {
       status: res.status,
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+      },
     });
   } catch (err) {
-    return Response.json({ error: err.message }, { status: 500 });
+    console.error(err);
+
+    return Response.json(
+      { error: err.message },
+      { status: 500 }
+    );
   }
 }
 
 export async function POST(request) {
+  const guard = await requireAccess('products', 'manage');
+
+  if (!guard.ok) {
+    return Response.json(
+      { error: guard.message },
+      { status: guard.status }
+    );
+  }
+
   try {
     const body = await request.json();
 
-    const images = body.imageId ? [{ id: body.imageId }] : [];
+    const images = body.imageId
+      ? [{ id: Number(body.imageId) }]
+      : [];
 
-    // categories: array of category IDs (numbers or numeric strings)
-    const categories = Array.isArray(body.categories) && body.categories.length > 0
-      ? body.categories.map((id) => ({ id: Number(id) }))
-      : []; // empty = WooCommerce will file it under "Uncategorized"
+    // categories: array of category IDs
+    const categories =
+      Array.isArray(body.categories) && body.categories.length > 0
+        ? body.categories.map((id) => ({
+            id: Number(id),
+          }))
+        : [];
 
     const res = await fetch(
       `${process.env.WP_SITE_URL}/wp-json/wc/v3/products`,
@@ -57,11 +106,30 @@ export async function POST(request) {
     );
 
     const text = await res.text();
+
+    if (!res.ok) {
+      console.error(text);
+
+      return new Response(text, {
+        status: res.status,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+    }
+
     return new Response(text, {
       status: res.status,
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+      },
     });
   } catch (err) {
-    return Response.json({ error: err.message }, { status: 500 });
+    console.error(err);
+
+    return Response.json(
+      { error: err.message },
+      { status: 500 }
+    );
   }
 }

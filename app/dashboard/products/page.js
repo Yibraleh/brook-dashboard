@@ -25,6 +25,8 @@ export default function ProductsPage() {
   const [editForm, setEditForm] = useState(null);
   const [updating, setUpdating] = useState(false);
   const fileInputRef = useRef(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   async function loadProducts() {
     try {
@@ -161,19 +163,34 @@ export default function ProductsPage() {
     }
   }
 
-  async function handleDelete(id) {
-    if (!confirm('Delete this product permanently?')) return;
-    await fetch(`/api/products/${id}`, { method: 'DELETE' });
+  function requestDelete(id) {
+  setConfirmDeleteId(id);
+}
+
+async function confirmDelete() {
+  if (!confirmDeleteId) return;
+
+  setDeleting(true);
+
+  try {
+    await fetch(`/api/products/${confirmDeleteId}`, {
+      method: 'DELETE',
+    });
+
+    setConfirmDeleteId(null);
     closeModal();
     loadProducts();
+  } finally {
+    setDeleting(false);
   }
+}
 
   const filteredProducts = products.filter((p) =>
     p.name?.toLowerCase().includes(search.toLowerCase())
   );
 
   const inputStyles =
-    "w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-slate-900 placeholder:text-slate-400 outline-none transition-all duration-300 focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-100";
+    "w-full rounded-2xl border border-gray-200 bg-gray-50 px-5 py-4 text-gray-900 placeholder:text-gray-400 outline-none transition-all duration-300 focus:border-black focus:bg-white focus:ring-4 focus:ring-gray-100";
 
   function CategoryCheckboxes({ selected, onToggle }) {
     return (
@@ -187,15 +204,15 @@ export default function ProductsPage() {
               onClick={() => onToggle(cat.id)}
               className={`px-4 py-2 rounded-full text-sm font-medium border transition-all
                 ${isChecked
-                  ? 'bg-indigo-600 border-indigo-600 text-white'
-                  : 'bg-white border-slate-200 text-slate-600 hover:border-indigo-300'}`}
+                  ? 'bg-black border-black text-white'
+                  : 'bg-white border-gray-200 text-gray-600 hover:border-black'}`}
             >
               {cat.name}
             </button>
           );
         })}
         {categories.length === 0 && (
-          <p className="text-sm text-slate-400">No categories found.</p>
+          <p className="text-sm text-gray-400">No categories found.</p>
         )}
       </div>
     );
@@ -205,40 +222,40 @@ export default function ProductsPage() {
     <div className="space-y-10">
 
       {/* Hero header */}
-      <div className="rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-900 to-slate-900 p-10 text-white shadow-2xl">
-        <p className="text-indigo-200 font-medium flex items-center gap-2">
+      <div className="rounded-3xl bg-black p-10 text-white shadow-2xl">
+        <p className="text-gray-400 font-medium flex items-center gap-2">
           <ShoppingBag size={18} /> Shop Management
         </p>
         <h1 className="mt-2 text-4xl font-bold">Products</h1>
-        <p className="mt-3 max-w-2xl text-slate-300">
+        <p className="mt-3 max-w-2xl text-gray-300">
           Add new artworks to your shop and manage your collection.
         </p>
       </div>
 
       {/* Create new product */}
-      <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm max-w-2xl">
-        <h2 className="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">
-          <ShoppingBag size={20} className="text-indigo-600" />
+      <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm max-w-2xl">
+        <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+          <ShoppingBag size={20} className="text-black" />
           Add New Product
         </h2>
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="block text-sm font-semibold text-slate-600 mb-2">Product Image</label>
+            <label className="block text-sm font-semibold text-gray-600 mb-2">Product Image</label>
             <label
               onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
               onDragLeave={() => setDragOver(false)}
               onDrop={handleDrop}
               className={`flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed p-8 cursor-pointer transition-all
-                ${dragOver ? 'border-indigo-500 bg-indigo-50' : 'border-slate-200 bg-slate-50 hover:bg-slate-100'}`}
+                ${dragOver ? 'border-black bg-gray-100' : 'border-gray-200 bg-gray-50 hover:bg-gray-100'}`}
             >
               {previewUrl ? (
                 <img src={previewUrl} className="w-32 h-32 object-cover rounded-xl shadow-md" />
               ) : (
                 <>
-                  <UploadCloud size={32} className="text-slate-400" />
-                  <p className="text-slate-500 text-sm">
-                    Drag & drop, or <span className="text-indigo-600 font-medium">browse</span>
+                  <UploadCloud size={32} className="text-gray-400" />
+                  <p className="text-gray-500 text-sm">
+                    Drag & drop, or <span className="text-black font-medium underline">browse</span>
                   </p>
                 </>
               )}
@@ -253,7 +270,7 @@ export default function ProductsPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-slate-600 mb-2">Title</label>
+            <label className="block text-sm font-semibold text-gray-600 mb-2">Title</label>
             <input
               className={`${inputStyles} text-lg font-medium`}
               placeholder="Enter artwork title..."
@@ -264,7 +281,7 @@ export default function ProductsPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-slate-600 mb-2">Description</label>
+            <label className="block text-sm font-semibold text-gray-600 mb-2">Description</label>
             <textarea
               className={`${inputStyles} min-h-[140px] leading-7 resize-y`}
               placeholder="Describe the piece..."
@@ -274,16 +291,16 @@ export default function ProductsPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-slate-600 mb-2">
-              Category <span className="text-slate-400 font-normal">(select one or more — leave blank for Uncategorized)</span>
+            <label className="block text-sm font-semibold text-gray-600 mb-2">
+              Category <span className="text-gray-400 font-normal">(select one or more — leave blank for Uncategorized)</span>
             </label>
             <CategoryCheckboxes selected={form.categories} onToggle={toggleCreateCategory} />
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-slate-600 mb-2">Price</label>
+            <label className="block text-sm font-semibold text-gray-600 mb-2">Price</label>
             <div className="relative">
-              <DollarSign size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+              <DollarSign size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 type="number"
                 className={`${inputStyles} pl-11`}
@@ -296,22 +313,22 @@ export default function ProductsPage() {
 
           <button
             disabled={saving}
-            className="w-full flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-indigo-600 to-blue-600 py-4 font-semibold text-white shadow-lg transition-all hover:scale-[1.02] hover:shadow-xl disabled:opacity-50 disabled:hover:scale-100"
+            className="w-full flex items-center justify-center gap-2 rounded-2xl bg-black py-4 font-semibold text-white shadow-lg transition-all hover:scale-[1.02] hover:shadow-xl hover:bg-gray-900 disabled:opacity-50 disabled:hover:scale-100"
           >
             {saving ? <Loader2 size={18} className="animate-spin" /> : <ShoppingBag size={18} />}
             {saving ? 'Adding...' : 'Add Product'}
           </button>
 
-          {status && <p className="text-sm text-slate-600">{status}</p>}
+          {status && <p className="text-sm text-gray-600">{status}</p>}
         </form>
       </div>
 
       {/* Search */}
       <div className="max-w-2xl">
         <div className="relative">
-          <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
-            className="w-full rounded-2xl border border-slate-200 bg-white pl-11 pr-5 py-3 text-slate-800 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition-all"
+            className="w-full rounded-2xl border border-gray-200 bg-white pl-11 pr-5 py-3 text-gray-800 outline-none focus:border-black focus:ring-4 focus:ring-gray-100 transition-all"
             placeholder="Search products..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -321,10 +338,10 @@ export default function ProductsPage() {
 
       {/* Products grid */}
       <div>
-        <h2 className="text-2xl font-bold text-slate-900 mb-6">Manage Products</h2>
+        <h2 className="text-2xl font-bold text-gray-900 mb-6">Manage Products</h2>
 
         {filteredProducts.length === 0 && (
-          <p className="text-slate-400 text-sm">No products found.</p>
+          <p className="text-gray-400 text-sm">No products found.</p>
         )}
 
         <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
@@ -332,35 +349,35 @@ export default function ProductsPage() {
             <button
               key={p.id}
               onClick={() => openProduct(p)}
-              className="group text-left overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-indigo-300 hover:shadow-xl"
+              className="group text-left overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-black hover:shadow-xl"
             >
-              <div className="relative h-44 bg-slate-100 overflow-hidden">
+              <div className="relative h-44 bg-gray-100 overflow-hidden">
                 {p.images?.[0] ? (
                   <img
                     src={p.images[0].src}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-slate-300">
+                  <div className="w-full h-full flex items-center justify-center text-gray-300">
                     <ShoppingBag size={40} />
                   </div>
                 )}
               </div>
               <div className="p-5">
-                <h3 className="font-bold text-slate-900 group-hover:text-indigo-600 transition mb-1">
+                <h3 className="font-bold text-gray-900 group-hover:text-black transition mb-1">
                   {p.name}
                 </h3>
-                <p className="text-sm text-slate-400 mb-2">#{p.id}</p>
+                <p className="text-sm text-gray-400 mb-2">#{p.id}</p>
                 {p.categories?.length > 0 && (
                   <div className="flex flex-wrap gap-1 mb-2">
                     {p.categories.map((c) => (
-                      <span key={c.id} className="text-xs bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full">
+                      <span key={c.id} className="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full">
                         {c.name}
                       </span>
                     ))}
                   </div>
                 )}
-                <p className="text-lg font-semibold text-indigo-600">
+                <p className="text-lg font-semibold text-gray-900">
                   ${p.regular_price || p.price || '—'}
                 </p>
               </div>
@@ -372,26 +389,26 @@ export default function ProductsPage() {
       {/* Detail / Edit Modal */}
       {selectedProduct && editForm && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-6">
-          <div className="bg-white rounded-[30px] shadow-2xl border border-slate-200 max-w-2xl w-full max-h-[88vh] overflow-y-auto p-8 relative">
+          <div className="bg-white rounded-[30px] shadow-2xl border border-gray-200 max-w-2xl w-full max-h-[88vh] overflow-y-auto p-8 relative">
             <button
               onClick={closeModal}
-              className="absolute top-6 right-6 text-slate-400 hover:text-slate-800 transition"
+              className="absolute top-6 right-6 text-gray-400 hover:text-black transition"
             >
               <X size={22} />
             </button>
 
-            <h2 className="text-2xl font-bold text-slate-900 mb-6">Edit Product</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Edit Product</h2>
 
             {selectedProduct.images?.[0] && (
               <img
                 src={selectedProduct.images[0].src}
-                className="w-full max-h-64 object-contain rounded-2xl bg-slate-50 mb-6"
+                className="w-full max-h-64 object-contain rounded-2xl bg-gray-50 mb-6"
               />
             )}
 
             <div className="space-y-5">
               <div>
-                <label className="block text-sm font-semibold text-slate-600 mb-2">Title</label>
+                <label className="block text-sm font-semibold text-gray-600 mb-2">Title</label>
                 <input
                   className={`${inputStyles} text-lg font-medium`}
                   value={editForm.title}
@@ -400,7 +417,7 @@ export default function ProductsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-slate-600 mb-2">Description</label>
+                <label className="block text-sm font-semibold text-gray-600 mb-2">Description</label>
                 <textarea
                   className={`${inputStyles} min-h-[140px] leading-7 resize-y`}
                   value={editForm.description}
@@ -409,16 +426,16 @@ export default function ProductsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-slate-600 mb-2">
-                  Category <span className="text-slate-400 font-normal">(select one or more)</span>
+                <label className="block text-sm font-semibold text-gray-600 mb-2">
+                  Category <span className="text-gray-400 font-normal">(select one or more)</span>
                 </label>
                 <CategoryCheckboxes selected={editForm.categories} onToggle={toggleEditCategory} />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-slate-600 mb-2">Price</label>
+                <label className="block text-sm font-semibold text-gray-600 mb-2">Price</label>
                 <div className="relative">
-                  <DollarSign size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <DollarSign size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
                   <input
                     type="number"
                     className={`${inputStyles} pl-11`}
@@ -429,10 +446,10 @@ export default function ProductsPage() {
               </div>
             </div>
 
-            <div className="flex gap-3 mt-8 pt-6 border-t border-slate-100">
+            <div className="flex gap-3 mt-8 pt-6 border-t border-gray-100">
               <button
-                onClick={() => handleDelete(selectedProduct.id)}
-                className="flex items-center justify-center gap-2 border border-red-300 text-red-600 px-6 py-3 rounded-2xl font-semibold hover:bg-red-50 transition"
+                onClick={() => requestDelete(selectedProduct.id)}
+                className="flex items-center justify-center gap-2 border border-gray-300 text-gray-900 px-6 py-3 rounded-2xl font-semibold hover:bg-gray-100 transition"
               >
                 <Trash2 size={18} />
                 Delete
@@ -440,7 +457,7 @@ export default function ProductsPage() {
               <button
                 onClick={handleUpdate}
                 disabled={updating}
-                className="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-indigo-600 to-blue-600 py-3 font-semibold text-white shadow-lg transition-all hover:scale-[1.02] hover:shadow-xl"
+                className="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-black py-3 font-semibold text-white shadow-lg transition-all hover:scale-[1.02] hover:shadow-xl hover:bg-gray-900"
               >
                 <Save size={18} />
                 {updating ? 'Saving...' : 'Save Changes'}
@@ -448,7 +465,7 @@ export default function ProductsPage() {
               <a
                 href={selectedProduct.permalink}
                 target="_blank"
-                className="flex items-center justify-center px-6 py-3 rounded-2xl border border-slate-200 text-slate-600 font-semibold hover:bg-slate-50 transition"
+                className="flex items-center justify-center px-6 py-3 rounded-2xl border border-gray-200 text-gray-600 font-semibold hover:bg-gray-50 transition"
               >
                 View
               </a>
@@ -456,6 +473,41 @@ export default function ProductsPage() {
           </div>
         </div>
       )}
+      {/* Delete confirmation */}
+{confirmDeleteId && (
+  <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-6">
+    <div className="bg-white rounded-3xl shadow-2xl border border-gray-200 max-w-sm w-full p-7 text-center">
+      <div className="mx-auto mb-4 flex items-center justify-center w-12 h-12 rounded-full bg-gray-100">
+        <Trash2 size={20} className="text-gray-900" />
+      </div>
+
+      <h3 className="text-lg font-bold text-gray-900 mb-2">
+        Delete this product?
+      </h3>
+
+      <p className="text-sm text-gray-500 mb-6">
+        This can't be undone. The product will be permanently removed.
+      </p>
+
+      <div className="flex gap-3">
+        <button
+          onClick={() => setConfirmDeleteId(null)}
+          className="flex-1 rounded-2xl border border-gray-300 py-3 font-semibold text-gray-900 hover:bg-gray-100 transition"
+        >
+          Cancel
+        </button>
+
+        <button
+          onClick={confirmDelete}
+          disabled={deleting}
+          className="flex-1 rounded-2xl bg-black py-3 font-semibold text-white hover:bg-gray-900 transition disabled:opacity-50"
+        >
+          {deleting ? 'Deleting...' : 'Delete'}
+        </button>
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 }
