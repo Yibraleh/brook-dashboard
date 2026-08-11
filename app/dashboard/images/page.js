@@ -311,34 +311,51 @@ async function confirmDelete() {
           </div>
         </div>
       )}
-      {confirmDeleteId && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-6">
-          <div className="bg-white rounded-3xl shadow-2xl border border-gray-200 max-w-sm w-full p-7 text-center">
-            <div className="mx-auto mb-4 flex items-center justify-center w-12 h-12 rounded-full bg-gray-100">
-              <Trash2 size={20} className="text-gray-900" />
-            </div>
-            <h3 className="text-lg font-bold text-gray-900 mb-2">Delete this post?</h3>
-            <p className="text-sm text-gray-500 mb-6">
-              This can't be undone. The post will be permanently removed.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setConfirmDeleteId(null)}
-                className="flex-1 rounded-2xl border border-gray-300 py-3 font-semibold text-gray-900 hover:bg-gray-100 transition"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={confirmDelete}
-                disabled={deleting}
-                className="flex-1 rounded-2xl bg-black py-3 font-semibold text-white hover:bg-gray-900 transition disabled:opacity-50"
-              >
-                {deleting ? 'Deleting...' : 'Delete'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+   ```jsx
+{confirmDeleteId && (
+  <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-6">
+    <div className="w-full max-w-sm rounded-2xl bg-white shadow-2xl border border-gray-200 p-6">
+      
+      {/* Icon */}
+      <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-50">
+        <Trash2 size={22} className="text-red-600" />
+      </div>
+
+      {/* Title */}
+      <h3 className="text-center text-lg font-semibold text-gray-900">
+        Delete this product?
+      </h3>
+
+      {/* Description */}
+      <p className="mt-2 text-center text-sm leading-5 text-gray-500">
+        This action cannot be undone. The product will be permanently deleted.
+      </p>
+
+      {/* Buttons */}
+      <div className="mt-6 flex gap-3">
+        <button
+          type="button"
+          onClick={() => setConfirmDeleteId(null)}
+          disabled={deleting}
+          className="flex-1 rounded-xl border border-gray-300 bg-white py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:opacity-50"
+        >
+          Cancel
+        </button>
+
+        <button
+          type="button"
+          onClick={confirmDelete}
+          disabled={deleting}
+          className="flex-1 rounded-xl bg-red-600 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {deleting ? 'Deleting...' : 'Delete'}
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+
     </div>
     
   );

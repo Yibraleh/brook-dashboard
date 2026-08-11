@@ -10,7 +10,12 @@ import {
   Clock,
   Bold,
   Italic,
+  Underline,
   Heading2,
+  List,
+  ListOrdered,
+  Quote,
+  Link2,
   ImagePlus,
   UploadCloud,
   Loader2,
@@ -30,7 +35,9 @@ async function uploadImageFile(file) {
 function RichEditor({ editorRef, initialHtml, onChange, minHeight = '320px' }) {
   const inlineImageInput = useRef(null);
   const pendingAlign = useRef('full');
-  const [activeStates, setActiveStates] = useState({ bold: false, italic: false, h2: false });
+  const [activeStates, setActiveStates] = useState({
+    bold: false, italic: false, underline: false, h2: false, ul: false, ol: false, quote: false,
+  });
 
   useEffect(() => {
     if (editorRef.current && initialHtml !== undefined) {
@@ -48,19 +55,21 @@ function RichEditor({ editorRef, initialHtml, onChange, minHeight = '320px' }) {
     const anchorNode = selection.anchorNode;
     if (!anchorNode || !el.contains(anchorNode)) return;
 
-    let isBold = false;
-    let isItalic = false;
-    let isH2 = false;
+    let next = { bold: false, italic: false, underline: false, h2: false, ul: false, ol: false, quote: false };
     try {
-      isBold = document.queryCommandState('bold');
-      isItalic = document.queryCommandState('italic');
-      const block = document.queryCommandValue('formatBlock');
-      isH2 = (block || '').toLowerCase() === 'h2';
+      next.bold = document.queryCommandState('bold');
+      next.italic = document.queryCommandState('italic');
+      next.underline = document.queryCommandState('underline');
+      next.ul = document.queryCommandState('insertUnorderedList');
+      next.ol = document.queryCommandState('insertOrderedList');
+      const block = (document.queryCommandValue('formatBlock') || '').toLowerCase();
+      next.h2 = block === 'h2';
+      next.quote = block === 'blockquote';
     } catch (err) {
       // some browsers throw if selection isn't inside a contentEditable
     }
 
-    setActiveStates({ bold: isBold, italic: isItalic, h2: isH2 });
+    setActiveStates(next);
   }
 
   useEffect(() => {
@@ -80,17 +89,42 @@ function RichEditor({ editorRef, initialHtml, onChange, minHeight = '320px' }) {
     updateActiveStates();
   }
 
-  function insertSubtitle() {
+  function toggleBlock(tag) {
     focusEditor();
-    const isCurrentlyH2 = (document.queryCommandValue('formatBlock') || '').toLowerCase() === 'h2';
-    document.execCommand('formatBlock', false, isCurrentlyH2 ? 'p' : 'h2');
+    const current = (document.queryCommandValue('formatBlock') || '').toLowerCase();
+    document.execCommand('formatBlock', false, current === tag ? 'p' : tag);
     onChange(editorRef.current.innerHTML);
     updateActiveStates();
+  }
+
+  function insertLink() {
+    focusEditor();
+    const selection = window.getSelection();
+    if (!selection || selection.isCollapsed) {
+      alert('Select some text first, then click the link button.');
+      return;
+    }
+    const url = window.prompt('Link URL (https://...)');
+    if (!url) return;
+    document.execCommand('createLink', false, url);
+    onChange(editorRef.current.innerHTML);
   }
 
   function triggerImageInsert(align) {
     pendingAlign.current = align;
     inlineImageInput.current?.click();
+  }
+
+  /* Inline styles (not Tailwind classes) so float/width survive on the public
+     WordPress site, which doesn't load this app's Tailwind stylesheet. */
+  function stylesFor(align) {
+    if (align === 'left') {
+      return 'float:left;width:33%;margin:4px 20px 12px 0;border-radius:12px;';
+    }
+    if (align === 'right') {
+      return 'float:right;width:33%;margin:4px 0 12px 20px;border-radius:12px;';
+    }
+    return 'display:block;width:100%;margin:20px 0;border-radius:16px;';
   }
 
   async function handleInlineImage(e) {
@@ -102,18 +136,13 @@ function RichEditor({ editorRef, initialHtml, onChange, minHeight = '320px' }) {
 
     // Show a temporary local preview immediately so it feels responsive
     const localUrl = URL.createObjectURL(file);
-    const classes =
-      pendingAlign.current === 'left'
-        ? 'float-left w-1/3 mr-5 mb-2 rounded-xl'
-        : pendingAlign.current === 'right'
-        ? 'float-right w-1/3 ml-5 mb-2 rounded-xl'
-        : 'w-full my-4 rounded-2xl';
+    const style = stylesFor(pendingAlign.current);
 
     const placeholderId = `img-${Date.now()}`;
     document.execCommand(
       'insertHTML',
       false,
-      `<img id="${placeholderId}" src="${localUrl}" class="${classes}" />`
+      `<img id="${placeholderId}" src="${localUrl}" style="${style}" />`
     );
     onChange(editorRef.current.innerHTML);
 
@@ -128,50 +157,45 @@ function RichEditor({ editorRef, initialHtml, onChange, minHeight = '320px' }) {
     }
   }
 
+  const btnClass = (active) =>
+    `p-2 rounded-lg transition-colors ${active ? 'bg-black text-white' : 'text-gray-700 hover:bg-gray-100'}`;
+
   return (
     <div className="rounded-2xl border border-gray-200 bg-gray-50 focus-within:border-black focus-within:bg-white focus-within:ring-4 focus-within:ring-gray-100 transition-all duration-300 overflow-hidden">
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-1 border-b border-gray-200 bg-white px-3 py-2">
-        <button
-          type="button"
-          onClick={() => exec('undo')}
-          className="p-2 rounded-lg text-gray-700 hover:bg-gray-100"
-          title="Undo (Ctrl+Z)"
-        >
+        <button type="button" onClick={() => exec('undo')} className={btnClass(false)} title="Undo (Ctrl+Z)">
           <Undo2 size={16} />
         </button>
 
         <div className="w-px h-5 bg-gray-200 mx-1" />
 
-        <button
-          type="button"
-          onClick={() => exec('bold')}
-          className={`p-2 rounded-lg transition-colors ${
-            activeStates.bold ? 'bg-black text-white' : 'text-gray-700 hover:bg-gray-100'
-          }`}
-          title="Bold"
-        >
+        <button type="button" onClick={() => exec('bold')} className={btnClass(activeStates.bold)} title="Bold">
           <Bold size={16} />
         </button>
-        <button
-          type="button"
-          onClick={() => exec('italic')}
-          className={`p-2 rounded-lg transition-colors ${
-            activeStates.italic ? 'bg-black text-white' : 'text-gray-700 hover:bg-gray-100'
-          }`}
-          title="Italic"
-        >
+        <button type="button" onClick={() => exec('italic')} className={btnClass(activeStates.italic)} title="Italic">
           <Italic size={16} />
         </button>
-        <button
-          type="button"
-          onClick={insertSubtitle}
-          className={`p-2 rounded-lg transition-colors ${
-            activeStates.h2 ? 'bg-black text-white' : 'text-gray-700 hover:bg-gray-100'
-          }`}
-          title="Subtitle"
-        >
+        <button type="button" onClick={() => exec('underline')} className={btnClass(activeStates.underline)} title="Underline">
+          <Underline size={16} />
+        </button>
+        <button type="button" onClick={() => toggleBlock('h2')} className={btnClass(activeStates.h2)} title="Subtitle">
           <Heading2 size={16} />
+        </button>
+
+        <div className="w-px h-5 bg-gray-200 mx-1" />
+
+        <button type="button" onClick={() => exec('insertUnorderedList')} className={btnClass(activeStates.ul)} title="Bullet list">
+          <List size={16} />
+        </button>
+        <button type="button" onClick={() => exec('insertOrderedList')} className={btnClass(activeStates.ol)} title="Numbered list">
+          <ListOrdered size={16} />
+        </button>
+        <button type="button" onClick={() => toggleBlock('blockquote')} className={btnClass(activeStates.quote)} title="Quote">
+          <Quote size={16} />
+        </button>
+        <button type="button" onClick={insertLink} className={btnClass(false)} title="Add link">
+          <Link2 size={16} />
         </button>
 
         <div className="w-px h-5 bg-gray-200 mx-1" />
@@ -219,9 +243,18 @@ function RichEditor({ editorRef, initialHtml, onChange, minHeight = '320px' }) {
         onKeyUp={updateActiveStates}
         onMouseUp={updateActiveStates}
         onFocus={updateActiveStates}
-        className="prose-editor px-5 py-4 text-[17px] leading-8 text-gray-900 outline-none overflow-auto [&_h2]:text-2xl [&_h2]:font-bold [&_h2]:mt-6 [&_h2]:mb-3 [&_img]:shadow-md [&_p]:mb-4 empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400"
+        className="prose-editor px-5 py-4 text-[17px] leading-8 text-gray-900 outline-none overflow-auto
+          [&_h2]:text-2xl [&_h2]:font-bold [&_h2]:mt-6 [&_h2]:mb-3
+          [&_img]:shadow-md
+          [&_p]:mb-4
+          [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:mb-4
+          [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:mb-4
+          [&_li]:mb-1
+          [&_blockquote]:border-l-4 [&_blockquote]:border-black [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-gray-600 [&_blockquote]:my-4
+          [&_a]:underline [&_a]:text-black [&_a]:font-medium
+          empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400"
         style={{ minHeight }}
-        data-placeholder="Start writing your story... use the toolbar to add a subtitle or an image."
+        data-placeholder="Start writing your story... use the toolbar for subtitles, lists, quotes, links, or images."
       />
     </div>
   );
@@ -664,34 +697,51 @@ export default function PostsPage() {
       )}
 
       {/* Delete confirmation — centered, never anchored to the top */}
-      {confirmDeleteId && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-6">
-          <div className="bg-white rounded-3xl shadow-2xl border border-gray-200 max-w-sm w-full p-7 text-center">
-            <div className="mx-auto mb-4 flex items-center justify-center w-12 h-12 rounded-full bg-gray-100">
-              <Trash2 size={20} className="text-gray-900" />
-            </div>
-            <h3 className="text-lg font-bold text-gray-900 mb-2">Delete this post?</h3>
-            <p className="text-sm text-gray-500 mb-6">
-              This can't be undone. The post will be permanently removed.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setConfirmDeleteId(null)}
-                className="flex-1 rounded-2xl border border-gray-300 py-3 font-semibold text-gray-900 hover:bg-gray-100 transition"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={confirmDelete}
-                disabled={deleting}
-                className="flex-1 rounded-2xl bg-black py-3 font-semibold text-white hover:bg-gray-900 transition disabled:opacity-50"
-              >
-                {deleting ? 'Deleting...' : 'Delete'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+     ```jsx
+{confirmDeleteId && (
+  <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-6">
+    <div className="w-full max-w-sm rounded-2xl bg-white shadow-2xl border border-gray-200 p-6">
+      
+      {/* Icon */}
+      <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-50">
+        <Trash2 size={22} className="text-red-600" />
+      </div>
+
+      {/* Title */}
+      <h3 className="text-center text-lg font-semibold text-gray-900">
+        Delete this product?
+      </h3>
+
+      {/* Description */}
+      <p className="mt-2 text-center text-sm leading-5 text-gray-500">
+        This action cannot be undone. The product will be permanently deleted.
+      </p>
+
+      {/* Buttons */}
+      <div className="mt-6 flex gap-3">
+        <button
+          type="button"
+          onClick={() => setConfirmDeleteId(null)}
+          disabled={deleting}
+          className="flex-1 rounded-xl border border-gray-300 bg-white py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:opacity-50"
+        >
+          Cancel
+        </button>
+
+        <button
+          type="button"
+          onClick={confirmDelete}
+          disabled={deleting}
+          className="flex-1 rounded-xl bg-red-600 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {deleting ? 'Deleting...' : 'Delete'}
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+
     </div>
   );
 }
