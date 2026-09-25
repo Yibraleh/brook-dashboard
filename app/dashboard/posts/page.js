@@ -561,7 +561,7 @@ export default function PostsPage() {
             className="w-full flex items-center justify-center gap-2 rounded-2xl bg-black py-4 font-semibold text-white shadow-lg transition-all hover:scale-[1.02] hover:shadow-xl hover:bg-gray-900 disabled:opacity-50 disabled:hover:scale-100"
           >
             {saving ? <Loader2 size={18} className="animate-spin" /> : <PenSquare size={18} />}
-            {saving ? 'Publishing...' : 'Publish Post'}
+            {saving ? 'Saving...' : 'Save Post'}
           </button>
 
           {status && <p className="text-sm text-gray-600">{status}</p>}
