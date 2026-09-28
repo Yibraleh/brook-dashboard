@@ -335,6 +335,11 @@ export default function PostsPage() {
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
+  /* Import from link */
+  const [importUrl, setImportUrl] = useState('');
+  const [importing, setImporting] = useState(false);
+  const [importError, setImportError] = useState('');
+
   const createEditorRef = useRef(null);
   const editEditorRef = useRef(null);
 
@@ -370,6 +375,39 @@ export default function PostsPage() {
   function removeEditCover() {
     setEditCoverFile(null);
     setEditCoverPreview(null);
+  }
+
+  async function handleImport() {
+    if (!importUrl.trim()) return;
+    setImporting(true);
+    setImportError('');
+    try {
+      const res = await fetch('/api/import-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: importUrl.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Could not import');
+
+      setForm((f) => ({ ...f, title: data.title, content: data.html }));
+      if (createEditorRef.current) createEditorRef.current.innerHTML = data.html;
+
+      if (data.image) {
+        try {
+          const imgRes = await fetch('/api/proxy-image?url=' + encodeURIComponent(data.image));
+          if (imgRes.ok) {
+            const blob = await imgRes.blob();
+            handleCoverSelect(new File([blob], 'cover', { type: blob.type }));
+          }
+        } catch {}
+      }
+      setImportUrl('');
+    } catch (err) {
+      setImportError(err.message);
+    } finally {
+      setImporting(false);
+    }
   }
 
   async function handleSubmit(e) {
@@ -517,6 +555,33 @@ export default function PostsPage() {
         </h2>
 
         <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Import from link */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-600 mb-2">
+              Import from link <span className="text-gray-400 font-normal">(news, blogs)</span>
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="url"
+                className={inputStyles}
+                placeholder="Paste article link (https://...)"
+                value={importUrl}
+                onChange={(e) => setImportUrl(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleImport(); } }}
+              />
+              <button
+                type="button"
+                onClick={handleImport}
+                disabled={importing || !importUrl.trim()}
+                className="flex items-center gap-2 rounded-2xl bg-black px-6 font-semibold text-white disabled:opacity-50"
+              >
+                {importing ? <Loader2 size={18} className="animate-spin" /> : <Link2 size={18} />}
+                {importing ? 'Importing...' : 'Import'}
+              </button>
+            </div>
+            {importError && <p className="mt-2 text-sm text-red-600">{importError}</p>}
+          </div>
+
           <CoverImageUploader
             preview={coverPreview}
             onSelect={handleCoverSelect}
@@ -697,50 +762,48 @@ export default function PostsPage() {
       )}
 
       {/* Delete confirmation — centered, never anchored to the top */}
-     ```jsx
-{confirmDeleteId && (
-  <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-6">
-    <div className="w-full max-w-sm rounded-2xl bg-white shadow-2xl border border-gray-200 p-6">
-      
-      {/* Icon */}
-      <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-50">
-        <Trash2 size={22} className="text-red-600" />
-      </div>
+      {confirmDeleteId && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-6">
+          <div className="w-full max-w-sm rounded-2xl bg-white shadow-2xl border border-gray-200 p-6">
 
-      {/* Title */}
-      <h3 className="text-center text-lg font-semibold text-gray-900">
-        Delete this product?
-      </h3>
+            {/* Icon */}
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-50">
+              <Trash2 size={22} className="text-red-600" />
+            </div>
 
-      {/* Description */}
-      <p className="mt-2 text-center text-sm leading-5 text-gray-500">
-        This action cannot be undone. The product will be permanently deleted.
-      </p>
+            {/* Title */}
+            <h3 className="text-center text-lg font-semibold text-gray-900">
+              Delete this post?
+            </h3>
 
-      {/* Buttons */}
-      <div className="mt-6 flex gap-3">
-        <button
-          type="button"
-          onClick={() => setConfirmDeleteId(null)}
-          disabled={deleting}
-          className="flex-1 rounded-xl border border-gray-300 bg-white py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:opacity-50"
-        >
-          Cancel
-        </button>
+            {/* Description */}
+            <p className="mt-2 text-center text-sm leading-5 text-gray-500">
+              This action cannot be undone. The post will be permanently deleted.
+            </p>
 
-        <button
-          type="button"
-          onClick={confirmDelete}
-          disabled={deleting}
-          className="flex-1 rounded-xl bg-red-600 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {deleting ? 'Deleting...' : 'Delete'}
-        </button>
-      </div>
-    </div>
-  </div>
-)}
+            {/* Buttons */}
+            <div className="mt-6 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setConfirmDeleteId(null)}
+                disabled={deleting}
+                className="flex-1 rounded-xl border border-gray-300 bg-white py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:opacity-50"
+              >
+                Cancel
+              </button>
 
+              <button
+                type="button"
+                onClick={confirmDelete}
+                disabled={deleting}
+                className="flex-1 rounded-xl bg-red-600 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {deleting ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
