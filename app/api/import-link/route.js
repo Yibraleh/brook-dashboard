@@ -93,12 +93,18 @@ export async function POST(req) {
       exclusiveFilter: (frame) => frame.tag === 'img' && !frame.attribs.src,
     });
 
-       const host = new URL(finalUrl).hostname.replace(/^www\./, '');
+      const host = new URL(finalUrl).hostname.replace(/^www\./, '');
     const siteName =
       document.querySelector('meta[property="og:site_name"]')?.getAttribute('content')?.trim() ||
       document.querySelector('meta[name="application-name"]')?.getAttribute('content')?.trim() ||
       host;
-    const withSource = `${clean}<p><em>Source: ${siteName} — <a href="${finalUrl}" target="_blank" rel="noopener noreferrer">${finalUrl}</a></em></p>`;
+
+    const sourceBox = `<div style="display:flex;align-items:center;gap:10px;background:#f6f6f4;border-left:3px solid #111111;border-radius:10px;padding:12px 16px;margin:0 0 28px 0;font-size:14px;line-height:1.5;color:#444;">
+      <span style="font-size:18px;line-height:1;">📰</span>
+      <span>Originally published by <strong style="color:#111;">${siteName}</strong> — <a href="${finalUrl}" target="_blank" rel="noopener noreferrer" style="color:#111;text-decoration:underline;font-weight:600;">Read the original article</a></span>
+    </div>`;
+
+    const withSource = `${sourceBox}${clean}`;
 
     return NextResponse.json({
       title: (article.title || '').trim(),
