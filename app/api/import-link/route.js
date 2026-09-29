@@ -93,8 +93,12 @@ export async function POST(req) {
       exclusiveFilter: (frame) => frame.tag === 'img' && !frame.attribs.src,
     });
 
-    const host = new URL(finalUrl).hostname.replace(/^www\./, '');
-    const withSource = `${clean}<p><em>Source: <a href="${finalUrl}" target="_blank" rel="noopener noreferrer">${host}</a></em></p>`;
+       const host = new URL(finalUrl).hostname.replace(/^www\./, '');
+    const siteName =
+      document.querySelector('meta[property="og:site_name"]')?.getAttribute('content')?.trim() ||
+      document.querySelector('meta[name="application-name"]')?.getAttribute('content')?.trim() ||
+      host;
+    const withSource = `${clean}<p><em>Source: ${siteName} — <a href="${finalUrl}" target="_blank" rel="noopener noreferrer">${finalUrl}</a></em></p>`;
 
     return NextResponse.json({
       title: (article.title || '').trim(),
