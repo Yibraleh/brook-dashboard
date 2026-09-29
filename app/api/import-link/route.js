@@ -99,8 +99,8 @@ export async function POST(req) {
       document.querySelector('meta[name="application-name"]')?.getAttribute('content')?.trim() ||
       host;
 
-    const sourceBox = `<div style="display:flex;align-items:center;gap:10px;background:#f6f6f4;border-left:3px solid #111111;border-radius:10px;padding:12px 16px;margin:0 0 28px 0;font-size:14px;line-height:1.5;color:#444;">
-      <span>Originally published by <strong style="color:#111;">${siteName}</strong> — <a href="${finalUrl}" target="_blank" rel="noopener noreferrer" style="color:#111;text-decoration:underline;font-weight:600;">Read the original article</a></span>
+          const sourceBox = `<div style="display:flex;align-items:center;gap:10px;background:#f6f6f4;border-left:3px solid #111111;border-radius:10px;padding:12px 16px;margin:0 0 28px 0;font-size:14px;line-height:1.5;color:#444;">
+      <span>Originally published by <strong style="color:#111;">${siteName}</strong></span>
     </div>`;
 
     const sourceLine = `<p><em>Source: ${siteName} — <a href="${finalUrl}" target="_blank" rel="noopener noreferrer">${finalUrl}</a></em></p>`;
